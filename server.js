@@ -1,88 +1,36 @@
 const express = require("express");
 const app = express();
-var http = require("http").Server(app);
-var client = require("socket.io")(http);
 const path = require("path");
 const mongoose = require("mongoose");
-const keys = require("./config/keys/keys");
+const dotenv = require('dotenv');
+const Middleware = require('./middleware/middleware');
+// const ErrorHnadlingMiddleware = require('./middleware/error-handling');
+const PlansController = require('./controllers/plans-controller');
+const SubscriptionsController = require('./controllers/subscriptions-controller');
 
-// const users = require("./routes/api/users");
-//Use Routes
-// app.use("/api/users", users);
+dotenv.config()
+Middleware(app);
+
+app.use('/api/plans', PlansController);
+app.use('/api/subscriptions', SubscriptionsController);
+
+// Error middleware must be defined after all other middleware/routes
+// ErrorHnadlingMiddleware(app);
 
 // Connect to mongo
-mongoose.connect(
-  keys.mongoURI,
-  {
-    useNewUrlParser: true,
-    useCreateIndex: true
-  },
-  function(err, db) {
-    if (err) {
-      throw err;
-    }
-    client.on("connection", socket => {
-      let chat = db.collection("chats");
-
-      // Create function to send status
-      const sendStatus = function(s) {
-        socket.emit("status", s);
-      };
-
-      // Get chats from mongo collection
-      chat
-        .find()
-        .limit(100)
-        .sort({ _id: 1 })
-        .toArray(function(err, res) {
-          if (err) {
-            throw err;
-          }
-
-          // Emit the messages
-          socket.emit("output", res);
-        });
-
-      // Handle input events
-      socket.on("input", function(data) {
-        let name = data.name;
-        let message = data.message;
-
-        // Check for name and message
-        if (name === "" || message === "") {
-          // Send error status
-          sendStatus("Please enter a name and message");
-        } else {
-          // Insert message
-          chat.insert({ name: name, message: message }, function() {
-            client.emit("output", [data]);
-
-            // Send status object
-            sendStatus({
-              message: "Message sent",
-              clear: true
-            });
-          });
-        }
-      });
-
-      socket.on("writing", function(data) {
-        console.log(data);
-        if (data.messageLength !== 0)
-          socket.broadcast.emit("writing", `${data.username} is writing...`);
-        else {
-          socket.broadcast.emit("stoppedWriting");
-        }
-      });
-      // // Handle clear
-      // socket.on("clear", function(data) {
-      //   // Remove all chats from collection
-      //   chat.remove({}, function() {
-      //     // Emit cleared
-      //     socket.emit("cleared");
-      //   });
-      // });
-    });
+// mongoose.connect(
+//   process.env.mongoURI,
+//   {
+//     useNewUrlParser: true,
+//     useCreateIndex: true
+//   },
+//   function(err, db) {
+//     if (err) {
+//       throw err;
+//     }
+    
+//     }
+// );
 
     //Server static assets if in production
     if (process.env.NODE_ENV === "production") {
@@ -96,8 +44,6 @@ mongoose.connect(
 
     const PORT = process.env.PORT || 5000;
 
-    var server = http.listen(PORT, () => {
+    var server = app.listen(PORT, () => {
       console.log("server is running on port", server.address().port);
     });
-  }
-);
