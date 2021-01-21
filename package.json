@@ -22,7 +22,7 @@
     "helmet": "^3.22.0",
     "mongoose": "^5.6.0",
     "morgan": "^1.10.0",
-    "socket.io": "^2.3.0"
+    "socket.io": "^2.4.0"
   },
   "devDependencies": {
     "concurrently": "^4.1.0",
